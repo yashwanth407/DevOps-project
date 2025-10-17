@@ -1,17 +1,22 @@
 pipeline {
     agent any
+
     stages {
         stage('Checkout SCM') {
             steps {
-                // checkout code
+                // Checkout your repository
+                checkout scm
             }
         }
+
         stage('Build') {
             steps {
-                // build commands
+                echo 'Building project...'
+                // For demo, listing files (replace with your actual build commands)
+                bat 'dir'
             }
         }
-        // Add the Serve HTML stage here:
+
         stage('Serve HTML') {
             steps {
                 echo 'Starting local server for HTML preview...'
