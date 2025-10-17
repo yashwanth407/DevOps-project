@@ -1,24 +1,27 @@
 pipeline {
     agent any
-
     stages {
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                checkout scm
+                // checkout code
             }
         }
-
         stage('Build') {
             steps {
-                echo 'Building project...'
-                bat 'dir'
+                // build commands
             }
         }
-
+        // Add the Serve HTML stage here:
         stage('Serve HTML') {
             steps {
                 echo 'Starting local server for HTML preview...'
-                bat 'python -m http.server 8080'
+                bat '''
+                where python || (
+                    echo Python not found, skipping server start.
+                    exit 0
+                )
+                python -m http.server 8080
+                '''
             }
         }
     }
