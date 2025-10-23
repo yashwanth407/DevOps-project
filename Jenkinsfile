@@ -4,8 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo 'Cloning repository (main branch)...'
-                git branch: 'main', url: 'https://github.com/yashwanth407/DevOps-project'
+                git 'https://github.com/yashwanth407/DevOps-project'
             }
         }
 
@@ -20,12 +19,13 @@ pipeline {
             steps {
                 echo 'Publishing HTML calculator page to Jenkins UI...'
                 publishHTML(target: [
-                    allowMissing: false,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: '.',               // location of your Calculator.html file
+                    reportDir: '.',
                     reportFiles: 'Calculator.html',
-                    reportName: 'Tax Calculator'  // label visible in Jenkins UI
+                    reportName: 'Tax Calculator',
+                    reportTitles: 'Calculator Output',
+                    keepAll: true,
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true
                 ])
             }
         }
@@ -33,10 +33,16 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build and publish successful! View your calculator in Jenkins.'
+            script {
+                // Generate a clickable URL to the HTML artifact
+                def buildNumber = currentBuild.number
+                def jenkinsUrl = env.JENKINS_URL
+                echo "\n✅ Build successful! Open your calculator here:"
+                echo "${jenkinsUrl}job/${env.JOB_NAME}/${buildNumber}/artifact/Calculator.html\n"
+            }
         }
         failure {
-            echo '❌ Build failed. Please check logs for details.'
+            echo "❌ Build failed. Please check logs for details."
         }
     }
 }
