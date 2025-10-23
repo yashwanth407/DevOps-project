@@ -19,37 +19,21 @@ pipeline {
         stage('Publish Calculator Page') {
             steps {
                 echo 'Publishing HTML calculator page to Jenkins UI...'
-                publishHTML([
+                publishHTML(target: [
                     allowMissing: false,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
-                    reportDir: '.',
+                    reportDir: '.',               // location of your Calculator.html file
                     reportFiles: 'Calculator.html',
-                    reportName: 'Glass Tax Calculator'
+                    reportName: 'Tax Calculator'  // label visible in Jenkins UI
                 ])
-            }
-        }
-
-        stage('Serve HTML (Local Preview)') {
-            steps {
-                echo 'Attempting to start local server for HTML preview...'
-                bat '''
-                where python >nul 2>nul
-                if %ERRORLEVEL% NEQ 0 (
-                    echo Python not found, skipping server start.
-                    exit /b 0
-                ) else (
-                    echo Python found. Starting server on port 8080...
-                    start /B python -m http.server 8080
-                )
-                '''
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build completed successfully! Calculator page published.'
+            echo '✅ Build and publish successful! View your calculator in Jenkins.'
         }
         failure {
             echo '❌ Build failed. Please check logs for details.'
