@@ -19,7 +19,7 @@ pipeline {
         stage('Publish Calculator Page') {
             steps {
                 echo 'Publishing HTML calculator page to Jenkins UI...'
-                publishHTML(target: [
+                publishHTML([
                     allowMissing: false,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
@@ -32,11 +32,12 @@ pipeline {
 
         stage('Serve HTML (Local Preview)') {
             steps {
-                echo 'Starting local server for HTML preview...'
+                echo 'Attempting to start local server for HTML preview...'
                 bat '''
                 where python >nul 2>nul
-                if %errorlevel% neq 0 (
+                if %ERRORLEVEL% NEQ 0 (
                     echo Python not found, skipping server start.
+                    exit /b 0
                 ) else (
                     echo Python found. Starting server on port 8080...
                     start /B python -m http.server 8080
@@ -48,9 +49,7 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build completed successfully!'
-            echo '📄 View in Jenkins: Glass Tax Calculator'
-            echo '🌐 Local preview: http://localhost:8080/Calculator.html'
+            echo '✅ Build completed successfully! Calculator page published.'
         }
         failure {
             echo '❌ Build failed. Please check logs for details.'
