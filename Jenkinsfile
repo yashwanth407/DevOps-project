@@ -266,9 +266,10 @@ pipeline {
                     // Write to file
                     writeFile file: 'tax-calculator.html', text: htmlContent
                     
-                    // Verify file was created
+                    // Verify file was created using Windows-compatible method
                     if (fileExists('tax-calculator.html')) {
-                        def fileSize = sh(script: 'wc -c < tax-calculator.html', returnStdout: true).trim()
+                        def file = new File("${env.WORKSPACE}\\tax-calculator.html")
+                        def fileSize = file.length()
                         echo "✅ HTML file created successfully (${fileSize} bytes)"
                     } else {
                         error("❌ Failed to create HTML file")
@@ -304,9 +305,9 @@ pipeline {
                     echo "Archiving tax-calculator.html as build artifact..."
                     archiveArtifacts artifacts: 'tax-calculator.html', fingerprint: true
                     
-                    // Also create a timestamped version
+                    // Also create a timestamped version using Windows batch
                     def timestamp = new Date().format('yyyyMMdd-HHmmss')
-                    sh "cp tax-calculator.html tax-calculator-${timestamp}.html"
+                    bat "copy tax-calculator.html tax-calculator-${timestamp}.html"
                     archiveArtifacts artifacts: "tax-calculator-${timestamp}.html", fingerprint: false
                 }
             }
@@ -352,32 +353,10 @@ Features:
     post {
         always {
             echo "Build completed with status: ${currentBuild.result}"
-            
-            // Clean up temporary files (optional)
-            // sh 'rm -f build-report.txt'
         }
         success {
             echo "✅ Tax Calculator created successfully!"
             echo "📁 Download the HTML file from 'Build Artifacts' section"
-            
-            // Optional: Add build summary
-            emailext (
-                subject: "SUCCESS: Tax Calculator Build #${env.BUILD_NUMBER}",
-                body: """
-The Glass Tax Calculator has been generated successfully.
-
-Build Details:
-- Job: ${env.JOB_NAME}
-- Build: #${env.BUILD_NUMBER}
-- Page Title: ${params.PAGE_TITLE}
-- Currency: ${params.CURRENCY_SYMBOL}
-
-Download the HTML file from: ${env.BUILD_URL}artifact/
-
-You can open the HTML file in any web browser to use the tax calculator.
-""",
-                to: "${env.BUILD_USER_EMAIL ?: 'dev@company.com'}"
-            )
         }
         failure {
             echo "❌ Failed to create Tax Calculator"
