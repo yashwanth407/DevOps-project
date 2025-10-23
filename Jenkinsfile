@@ -4,8 +4,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo 'Cloning repository...'
-                git 'https://github.com/yashwanth407/DevOps-project'
+                echo 'Cloning repository (main branch)...'
+                git branch: 'main', url: 'https://github.com/yashwanth407/DevOps-project'
             }
         }
 
@@ -49,8 +49,8 @@ pipeline {
     post {
         success {
             echo '✅ Build completed successfully!'
-            echo '📄 You can view the Calculator via: "Glass Tax Calculator" link in Jenkins.'
-            echo '🌐 Or, if Python server is running: http://localhost:8080/Calculator.html'
+            echo '📄 View in Jenkins: Glass Tax Calculator'
+            echo '🌐 Local preview: http://localhost:8080/Calculator.html'
         }
         failure {
             echo '❌ Build failed. Please check logs for details.'
