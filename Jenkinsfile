@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/yashwanth407/DevOps-project'
+                git branch: 'main', url: 'https://github.com/yashwanth407/DevOps-project'
             }
         }
 
@@ -34,7 +34,6 @@ pipeline {
     post {
         success {
             script {
-                // Generate a clickable URL to the HTML artifact
                 def buildNumber = currentBuild.number
                 def jenkinsUrl = env.JENKINS_URL
                 echo "\n✅ Build successful! Open your calculator here:"
