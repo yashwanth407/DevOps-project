@@ -5,7 +5,7 @@ echo ================================
 echo.
 
 echo Starting web server on port 8082...
-echo Open your browser and go to: http://localhost:8080/index.html
+echo Open your browser and go to: http://localhost:8082/index.html
 echo.
 echo Press Ctrl+C to stop the server
 echo.
