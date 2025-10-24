@@ -4,8 +4,8 @@
   "description": "Glass Tax Calculator - A beautiful web-based tax calculation tool",
   "main": "index.html",
   "scripts": {
-    "start": "npx http-server . -p 8080 -c-1",
-    "serve": "python -m http.server 8080",
+    "start": "npx http-server . -p 8082 -c-1",
+    "serve": "python -m http.server 8082",
     "test": "echo \"Tax Calculator ready for testing\""
   },
   "keywords": [
