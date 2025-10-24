@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        PORT = '8080'
+        PORT = '8082'
         APP_NAME = 'tax-calculator'
         GITHUB_REPO = 'https://github.com/yashwanth407/DevOps-project.git'
         BRANCH = 'main'
