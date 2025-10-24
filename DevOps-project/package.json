@@ -1,0 +1,23 @@
+{
+  "name": "tax-calculator",
+  "version": "1.0.0",
+  "description": "Glass Tax Calculator - A beautiful web-based tax calculation tool",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server . -p 8080 -c-1",
+    "serve": "python -m http.server 8080",
+    "test": "echo \"Tax Calculator ready for testing\""
+  },
+  "keywords": [
+    "tax",
+    "calculator",
+    "web",
+    "html",
+    "javascript"
+  ],
+  "author": "Tax Calculator Team",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
