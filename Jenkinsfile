@@ -462,7 +462,7 @@ pipeline {
                     echo ''
                     echo '🎉 SUCCESS: Tax Calculator deployed from GitHub!'
                     echo '📁 Repository: yashwanth407/DevOps-project'
-                    echo '🌐 Application URL: http://localhost:8080/index.html'
+                    echo '🌐 Application URL: http://localhost:8082/index.html'
                     echo '📋 Check Jenkins artifacts for detailed reports'
                 }
             }
