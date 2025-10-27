@@ -9,11 +9,17 @@ echo.
 
 REM Try Python first
 echo [1/3] Trying Python HTTP server on port 8082...
-python -m http.server 8082 2>nul
-if %errorlevel% equ 0 (
-    echo ✅ Python server started successfully!
-    echo 🌐 Access your app at: http://localhost:8082
-    goto :end
+echo Current directory: %CD%
+echo Checking for index.html...
+if exist index.html (
+    echo ✅ index.html found
+    echo Starting Python server...
+    python -m http.server 8082
+) else (
+    echo ❌ index.html not found in current directory
+    echo Please run this script from the calculator directory
+    pause
+    exit /b 1
 )
 
 echo [2/3] Python not found, trying python3...

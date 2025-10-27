@@ -476,11 +476,24 @@ pipeline {
                     try {
                         bat '''
                             echo Starting web server on port 8082...
-                            start /B python -m http.server 8082 2>nul || echo Python server failed to start
+                            echo Current directory: %CD%
+                            dir index.html
+                            echo.
+                            echo Testing Python server startup...
+                            python -c "import http.server; print('Python HTTP server module available')"
+                            echo.
+                            echo Starting Python HTTP server in background...
+                            start /B cmd /c "python -m http.server 8082 > server.log 2>&1"
+                            timeout /t 3 /nobreak >nul
+                            echo Server startup command executed
+                            echo.
+                            echo Checking if server is running...
+                            netstat -an | findstr :8082 || echo Port 8082 not yet bound - server may still be starting
                         '''
-                        echo '✅ Attempting to start Python HTTP server on port 8082'
+                        echo '✅ Python HTTP server startup initiated on port 8082'
                     } catch (Exception e) {
-                        echo 'Python server failed, trying PowerShell alternative...'
+                        echo "Python server startup failed: ${e.getMessage()}"
+                        echo 'Trying PowerShell alternative...'
                     }
                     
                     // Alternative: Use a simple batch-based approach
