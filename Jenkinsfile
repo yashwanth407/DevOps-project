@@ -483,33 +483,38 @@ pipeline {
                         echo 'Python server failed, trying PowerShell alternative...'
                     }
                     
-                    // Alternative: Use PowerShell to create a simple web server
+                    // Alternative: Use a simple batch-based approach
                     bat '''
-                        echo Creating PowerShell web server...
-                        powershell -Command "
-                        try {
-                            Add-Type -AssemblyName System.Net.HttpListener
-                            if ([System.Net.HttpListener]::IsSupported) {
-                                echo 'Starting PowerShell HTTP server on port 8083...'
-                                start powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', '
-                                Add-Type -AssemblyName System.Net.HttpListener;
-                                \\$listener = New-Object System.Net.HttpListener;
-                                \\$listener.Prefixes.Add(\"http://localhost:8083/\");
-                                \\$listener.Start();
-                                echo \"Server running at http://localhost:8083/\";
-                                while (\\$listener.IsListening) {
-                                    \\$context = \\$listener.GetContext();
-                                    \\$response = \\$context.Response;
-                                    \\$content = Get-Content \"index.html\" -Raw;
-                                    \\$buffer = [System.Text.Encoding]::UTF8.GetBytes(\\$content);
-                                    \\$response.ContentLength64 = \\$buffer.Length;
-                                    \\$response.OutputStream.Write(\\$buffer, 0, \\$buffer.Length);
-                                    \\$response.OutputStream.Close();
-                                }'
-                            }
-                        } catch {
-                            echo 'PowerShell server setup failed'
-                        }"
+                        echo Creating simple web server...
+                        echo Starting background server process...
+                        
+                        REM Create a simple server script
+                        echo @echo off > temp_server.bat
+                        echo echo Server starting on port 8083... >> temp_server.bat
+                        echo echo Access your application at: http://localhost:8083 >> temp_server.bat
+                        echo echo Press Ctrl+C to stop >> temp_server.bat
+                        echo powershell -NoProfile -Command "& { >> temp_server.bat
+                        echo   Add-Type -AssemblyName System.Net.HttpListener; >> temp_server.bat
+                        echo   $listener = New-Object System.Net.HttpListener; >> temp_server.bat
+                        echo   $listener.Prefixes.Add('http://localhost:8083/'); >> temp_server.bat
+                        echo   $listener.Start(); >> temp_server.bat
+                        echo   Write-Host 'Server running at http://localhost:8083/'; >> temp_server.bat
+                        echo   while ($listener.IsListening) { >> temp_server.bat
+                        echo     $context = $listener.GetContext(); >> temp_server.bat
+                        echo     $response = $context.Response; >> temp_server.bat
+                        echo     $content = Get-Content 'index.html' -Raw; >> temp_server.bat
+                        echo     $buffer = [System.Text.Encoding]::UTF8.GetBytes($content); >> temp_server.bat
+                        echo     $response.ContentType = 'text/html'; >> temp_server.bat
+                        echo     $response.ContentLength64 = $buffer.Length; >> temp_server.bat
+                        echo     $response.OutputStream.Write($buffer, 0, $buffer.Length); >> temp_server.bat
+                        echo     $response.OutputStream.Close(); >> temp_server.bat
+                        echo   } >> temp_server.bat
+                        echo }" >> temp_server.bat
+                        
+                        REM Start the server in background
+                        start /B temp_server.bat
+                        timeout /t 3 /nobreak >nul
+                        echo ✅ Server setup completed
                     '''
                     
                     // Provide access information
@@ -644,11 +649,12 @@ pipeline {
                     echo '🎉 SUCCESS: Tax Calculator deployed from GitHub!'
                     echo '📁 Repository: yashwanth407/DevOps-project'
                     echo ''
-                    echo '🌐 APPLICATION ACCESS URLS:'
-                    echo '   • Direct File: Open index.html in browser'
-                    echo '   • Python Server: http://localhost:8082'
-                    echo '   • PowerShell Server: http://localhost:8083'
-                    echo '   • Jenkins Workspace: C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Calculator@3\\index.html'
+                    echo '🌐 JENKINS-HOSTED APPLICATION URLS:'
+                    echo '   🔗 PRIMARY: http://localhost:8083 (Jenkins PowerShell Server)'
+                    echo '   🔗 BACKUP: http://localhost:8082 (Jenkins Python Server)'
+                    echo '   📁 DIRECT: C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Calculator@3\\index.html'
+                    echo ''
+                    echo '🎯 MAIN ACCESS LINK: http://localhost:8083'
                     echo ''
                     echo '📋 Check Jenkins artifacts for detailed reports'
                     echo '✅ Pipeline completed successfully!'
