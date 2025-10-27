@@ -344,8 +344,16 @@ pipeline {
                                         pythonCmd = 'C:\\Python311\\python.exe'
                                         echo 'Python found at C:\\Python311\\python.exe'
                                     } catch (Exception e5) {
-                                        echo 'Python not found in common locations. Will use Node.js server instead.'
-                                        pythonFound = false
+                                        echo 'Trying where command to find Python...'
+                                        try {
+                                            bat 'where python'
+                                            pythonFound = true
+                                            pythonCmd = 'python'
+                                            echo 'Python found via where command'
+                                        } catch (Exception e6) {
+                                            echo 'Python not found in common locations. Will use PowerShell server instead.'
+                                            pythonFound = false
+                                        }
                                     }
                                 }
                             }
@@ -474,61 +482,41 @@ pipeline {
                 script {
                     // Try to start a simple Python HTTP server
                     try {
-                        bat '''
+                        bat """
                             echo Starting web server on port 8082...
                             echo Current directory: %CD%
                             dir index.html
                             echo.
                             echo Testing Python server startup...
-                            python -c "import http.server; print('Python HTTP server module available')"
+                            ${env.PYTHON_CMD} -c "import http.server; print('Python HTTP server module available')"
                             echo.
                             echo Starting Python HTTP server in background...
-                            start /B cmd /c "python -m http.server 8082 > server.log 2>&1"
-                            timeout /t 3 /nobreak >nul
+                            start /B cmd /c "${env.PYTHON_CMD} -m http.server 8082 > server.log 2>&1"
+                            ping 127.0.0.1 -n 4 > nul
                             echo Server startup command executed
                             echo.
                             echo Checking if server is running...
                             netstat -an | findstr :8082 || echo Port 8082 not yet bound - server may still be starting
-                        '''
+                        """
                         echo '✅ Python HTTP server startup initiated on port 8082'
                     } catch (Exception e) {
                         echo "Python server startup failed: ${e.getMessage()}"
                         echo 'Trying PowerShell alternative...'
                     }
                     
-                    // Alternative: Use a simple batch-based approach
-                    bat '''
-                        echo Creating simple web server...
-                        echo Starting background server process...
-                        
-                        REM Create a simple server script
-                        echo @echo off > temp_server.bat
-                        echo echo Server starting on port 8083... >> temp_server.bat
-                        echo echo Access your application at: http://localhost:8083 >> temp_server.bat
-                        echo echo Press Ctrl+C to stop >> temp_server.bat
-                        echo powershell -NoProfile -Command "& { >> temp_server.bat
-                        echo   Add-Type -AssemblyName System.Net.HttpListener; >> temp_server.bat
-                        echo   $listener = New-Object System.Net.HttpListener; >> temp_server.bat
-                        echo   $listener.Prefixes.Add('http://localhost:8083/'); >> temp_server.bat
-                        echo   $listener.Start(); >> temp_server.bat
-                        echo   Write-Host 'Server running at http://localhost:8083/'; >> temp_server.bat
-                        echo   while ($listener.IsListening) { >> temp_server.bat
-                        echo     $context = $listener.GetContext(); >> temp_server.bat
-                        echo     $response = $context.Response; >> temp_server.bat
-                        echo     $content = Get-Content 'index.html' -Raw; >> temp_server.bat
-                        echo     $buffer = [System.Text.Encoding]::UTF8.GetBytes($content); >> temp_server.bat
-                        echo     $response.ContentType = 'text/html'; >> temp_server.bat
-                        echo     $response.ContentLength64 = $buffer.Length; >> temp_server.bat
-                        echo     $response.OutputStream.Write($buffer, 0, $buffer.Length); >> temp_server.bat
-                        echo     $response.OutputStream.Close(); >> temp_server.bat
-                        echo   } >> temp_server.bat
-                        echo }" >> temp_server.bat
-                        
-                        REM Start the server in background
-                        start /B temp_server.bat
-                        timeout /t 3 /nobreak >nul
-                        echo ✅ Server setup completed
-                    '''
+                    // Alternative: Use PowerShell directly (skip if Python worked)
+                    if (env.PYTHON_AVAILABLE != 'true') {
+                        echo 'Starting PowerShell HTTP server as fallback...'
+                        bat '''
+                            echo Starting PowerShell server on port 8083...
+                            start /B powershell -NoProfile -ExecutionPolicy Bypass -Command "& { Add-Type -AssemblyName System.Net.HttpListener; $listener = New-Object System.Net.HttpListener; $listener.Prefixes.Add('http://localhost:8083/'); $listener.Start(); Write-Host 'Server running at http://localhost:8083/'; while ($listener.IsListening) { $context = $listener.GetContext(); $response = $context.Response; try { $content = Get-Content 'index.html' -Raw; $buffer = [System.Text.Encoding]::UTF8.GetBytes($content); $response.ContentType = 'text/html'; $response.ContentLength64 = $buffer.Length; $response.OutputStream.Write($buffer, 0, $buffer.Length); } catch { $error = 'Error loading index.html'; $buffer = [System.Text.Encoding]::UTF8.GetBytes($error); $response.ContentLength64 = $buffer.Length; $response.OutputStream.Write($buffer, 0, $buffer.Length); } $response.OutputStream.Close(); } }"
+                            ping 127.0.0.1 -n 4 > nul
+                            echo ✅ PowerShell server setup completed
+                            netstat -an | findstr :8083 || echo Port 8083 not yet bound
+                        '''
+                    } else {
+                        echo 'Python server already started, skipping PowerShell fallback'
+                    }
                     
                     // Provide access information
                     echo '''
