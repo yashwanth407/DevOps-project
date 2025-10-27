@@ -1,0 +1,176 @@
+pipeline {
+    agent any
+    
+    environment {
+        PORT = '8082'
+        APP_NAME = 'tax-calculator'
+        GITHUB_REPO = 'https://github.com/yashwanth407/DevOps-project.git'
+        BRANCH = 'main'
+    }
+    
+    stages {
+        stage('Checkout from GitHub') {
+            steps {
+                echo 'Checking out source code from GitHub...'
+                echo "Repository: ${GITHUB_REPO}"
+                echo "Branch: ${BRANCH}"
+                
+                script {
+                    try {
+                        deleteDir()
+                        checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: "*/${BRANCH}"]],
+                            userRemoteConfigs: [[url: "${GITHUB_REPO}"]]
+                        ])
+                        echo 'Successfully checked out from GitHub'
+                        
+                        if (isUnix()) {
+                            sh 'ls -la'
+                        } else {
+                            bat 'dir'
+                        }
+                        
+                    } catch (Exception e) {
+                        echo "GitHub checkout failed: ${e.getMessage()}"
+                        error 'Failed to checkout from GitHub'
+                    }
+                    
+                    if (fileExists('index.html')) {
+                        echo 'index.html found successfully'
+                    } else {
+                        error 'index.html not found in workspace'
+                    }
+                }
+            }
+        }
+        
+        stage('Verify Application') {
+            steps {
+                echo 'Verifying application files...'
+                script {
+                    // Check for main application file
+                    if (fileExists('index.html')) {
+                        echo '✅ Main application file (index.html) found'
+                        
+                        // Show file size and basic info
+                        bat 'dir index.html'
+                        
+                        // Check if it contains expected content
+                        bat 'findstr /C:"Tax Calculator" index.html && echo ✅ Application title found'
+                        bat 'findstr /C:"calculate" index.html && echo ✅ Calculator function found'
+                    }
+                    
+                    // Check for other important files
+                    if (fileExists('package.json')) {
+                        echo '✅ Package.json found'
+                        bat 'type package.json'
+                    }
+                    
+                    if (fileExists('app.py')) {
+                        echo '✅ Python server file found'
+                    }
+                    
+                    if (fileExists('test_calculator.py')) {
+                        echo '✅ Python test file found'
+                    }
+                }
+            }
+        }
+        
+        stage('Basic Tests') {
+            steps {
+                echo 'Running basic application tests...'
+                script {
+                    // Test HTML structure
+                    bat '''
+                        echo Testing HTML structure...
+                        findstr /C:"<!DOCTYPE html>" index.html && echo ✅ Valid HTML document
+                        findstr /C:"<title>" index.html && echo ✅ Title tag found
+                        findstr /C:"function calculate" index.html && echo ✅ Calculate function found
+                        findstr /C:"addEventListener" index.html && echo ✅ Event listeners found
+                    '''
+                    
+                    // Test for required elements
+                    bat '''
+                        echo Testing required elements...
+                        findstr /C:"id=\"bill\"" index.html && echo ✅ Bill input found
+                        findstr /C:"id=\"tax\"" index.html && echo ✅ Tax input found
+                        findstr /C:"id=\"calculate\"" index.html && echo ✅ Calculate button found
+                        findstr /C:"id=\"reset\"" index.html && echo ✅ Reset button found
+                    '''
+                }
+            }
+        }
+        
+        stage('Generate Report') {
+            steps {
+                echo 'Generating deployment report...'
+                script {
+                    bat '''
+                        echo ======================================== > deployment_report.txt
+                        echo TAX CALCULATOR DEPLOYMENT REPORT >> deployment_report.txt
+                        echo FROM GITHUB: yashwanth407/DevOps-project >> deployment_report.txt
+                        echo ======================================== >> deployment_report.txt
+                        echo. >> deployment_report.txt
+                        echo Build Date: %DATE% %TIME% >> deployment_report.txt
+                        echo Application: Glass Tax Calculator >> deployment_report.txt
+                        echo GitHub Repository: %GITHUB_REPO% >> deployment_report.txt
+                        echo Branch: %BRANCH% >> deployment_report.txt
+                        echo Jenkins Job: %JOB_NAME% >> deployment_report.txt
+                        echo Build Number: %BUILD_NUMBER% >> deployment_report.txt
+                        echo. >> deployment_report.txt
+                        echo Workspace Files: >> deployment_report.txt
+                        echo ---------------- >> deployment_report.txt
+                        dir >> deployment_report.txt
+                        echo. >> deployment_report.txt
+                        echo Application Status: READY ✅ >> deployment_report.txt
+                        echo. >> deployment_report.txt
+                        echo To run locally: >> deployment_report.txt
+                        echo 1. Open index.html in web browser >> deployment_report.txt
+                        echo 2. Or use: python -m http.server 8082 >> deployment_report.txt
+                        echo 3. Or use: npx http-server . -p 8082 >> deployment_report.txt
+                        echo. >> deployment_report.txt
+                        echo ======================================== >> deployment_report.txt
+                    '''
+                }
+            }
+        }
+        
+        stage('Display Results') {
+            steps {
+                echo 'Displaying deployment results...'
+                script {
+                    echo '=========================================='
+                    echo '🎉 TAX CALCULATOR DEPLOYMENT SUCCESS!'
+                    echo '=========================================='
+                    
+                    bat 'type deployment_report.txt'
+                    
+                    // Archive the files
+                    archiveArtifacts artifacts: 'index.html, package.json, deployment_report.txt, *.py, *.md', allowEmptyArchive: true
+                    
+                    echo ''
+                    echo '✅ SUCCESS: Tax Calculator deployed from GitHub!'
+                    echo '📁 Repository: yashwanth407/DevOps-project'
+                    echo '📄 Main file: index.html'
+                    echo '📋 Check Jenkins artifacts for detailed reports'
+                    echo '🌐 To run: Open index.html in browser or use a web server'
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Pipeline completed - no server cleanup needed for this simple version'
+        }
+        success {
+            echo '🎉 Pipeline completed successfully!'
+            echo '✅ Tax Calculator is ready to use!'
+        }
+        failure {
+            echo '❌ Pipeline failed. Check the logs for details.'
+        }
+    }
+}

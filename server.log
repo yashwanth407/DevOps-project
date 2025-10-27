@@ -1,0 +1,37 @@
+2025-10-27 11:10:30,467 - INFO - Tax Calculator Server starting on port 8082
+2025-10-27 11:10:30,467 - INFO - Serving directory: C:\Users\yasht\OneDrive\Desktop\calculator
+2025-10-27 11:10:30,467 - INFO - Application URL: http://localhost:8082
+2025-10-27 11:10:30,468 - INFO - Server started successfully
+2025-10-27 11:10:30,468 - INFO - Tax Calculator application is ready!
+2025-10-27 11:10:30,469 - INFO - Press Ctrl+C to stop the server
+2025-10-27 11:10:48,587 - INFO - 127.0.0.1 - "GET /health HTTP/1.1" 200 -
+2025-10-27 11:10:52,870 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-10-27 11:10:52,978 - INFO - 127.0.0.1 - code 404, message File not found
+2025-10-27 11:10:52,979 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-10-27 11:13:01,905 - ERROR - Failed to start server: [WinError 10048] Only one usage of each socket address (protocol/network address/port) is normally permitted
+2025-10-27 11:13:01,905 - ERROR - Failed to start server
+2025-10-27 11:13:10,360 - INFO - Tax Calculator Server starting on port 8083
+2025-10-27 11:13:10,360 - INFO - Serving directory: C:\Users\yasht\OneDrive\Desktop\calculator
+2025-10-27 11:13:10,361 - INFO - Application URL: http://localhost:8083
+2025-10-27 11:13:10,362 - INFO - Server started successfully
+2025-10-27 11:13:10,362 - INFO - Tax Calculator application is ready!
+2025-10-27 11:13:10,362 - INFO - Press Ctrl+C to stop the server
+2025-10-27 11:13:38,177 - INFO - 127.0.0.1 - "GET /health HTTP/1.1" 200 -
+2025-10-27 11:13:55,884 - ERROR - Failed to start server: [WinError 10048] Only one usage of each socket address (protocol/network address/port) is normally permitted
+2025-10-27 11:13:55,884 - ERROR - Failed to start server
+2025-10-27 11:14:00,825 - INFO - 127.0.0.1 - "GET /health HTTP/1.1" 200 -
+2025-10-27 11:14:02,882 - INFO - 127.0.0.1 - "GET /index.html HTTP/1.1" 200 -
+2025-10-27 11:14:04,925 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-10-27 11:14:06,960 - INFO - 127.0.0.1 - "GET /health HTTP/1.1" 200 -
+2025-10-27 11:14:08,993 - INFO - 127.0.0.1 - "GET /status HTTP/1.1" 200 -
+2025-10-27 11:14:11,036 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-10-27 11:14:21,956 - INFO - 127.0.0.1 - "GET /health HTTP/1.1" 200 -
+2025-10-27 11:14:28,545 - INFO - 127.0.0.1 - "GET /status HTTP/1.1" 200 -
+2025-10-27 11:14:35,227 - INFO - 127.0.0.1 - "GET /index.html HTTP/1.1" 200 -
+2025-10-27 11:17:57,635 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-10-27 11:17:57,757 - INFO - 127.0.0.1 - code 404, message File not found
+2025-10-27 11:17:57,757 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-10-27 11:53:50,659 - INFO - 127.0.0.1 - "GET /health HTTP/1.1" 200 -
+2025-10-27 11:53:51,030 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-10-27 11:53:52,210 - INFO - 127.0.0.1 - "GET /health HTTP/1.1" 200 -
+2025-10-27 11:53:52,641 - INFO - 127.0.0.1 - "GET /index.html HTTP/1.1" 200 -

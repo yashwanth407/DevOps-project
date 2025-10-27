@@ -1,0 +1,8 @@
+# Tax Calculator Python Dependencies
+# Standard library modules are used, no external dependencies required
+# This file is included for completeness and future extensibility
+
+# For potential future enhancements:
+# requests>=2.28.0  # For HTTP client functionality
+# pytest>=7.0.0     # For advanced testing
+# flask>=2.2.0      # Alternative web framework option
