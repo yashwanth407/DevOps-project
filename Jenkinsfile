@@ -456,13 +456,84 @@ pipeline {
                         echo Testing application structure...
                         findstr /C:"<!DOCTYPE html>" index.html && echo ✅ Valid HTML document
                         findstr /C:"<title>" index.html && echo ✅ Title tag found
-                        findstr /C:"id=\"bill\"" index.html && echo ✅ Bill input found
-                        findstr /C:"id=\"tax\"" index.html && echo ✅ Tax input found
-                        findstr /C:"id=\"calculate\"" index.html && echo ✅ Calculate button found
-                        findstr /C:"id=\"reset\"" index.html && echo ✅ Reset button found
+                        findstr /C:"id=^"bill^"" index.html && echo ✅ Bill input found
+                        findstr /C:"id=^"tax^"" index.html && echo ✅ Tax input found
+                        findstr /C:"id=^"calculate^"" index.html && echo ✅ Calculate button found
+                        findstr /C:"id=^"reset^"" index.html && echo ✅ Reset button found
                     '''
                     
                     echo '✅ All basic tests passed - application structure is valid'
+                }
+            }
+        }
+        
+        stage('Start Web Server') {
+            steps {
+                echo 'Starting web server for application access...'
+                script {
+                    // Try to start a simple Python HTTP server
+                    try {
+                        bat '''
+                            echo Starting web server on port 8082...
+                            start /B python -m http.server 8082 2>nul || echo Python server failed to start
+                        '''
+                        echo '✅ Attempting to start Python HTTP server on port 8082'
+                    } catch (Exception e) {
+                        echo 'Python server failed, trying PowerShell alternative...'
+                    }
+                    
+                    // Alternative: Use PowerShell to create a simple web server
+                    bat '''
+                        echo Creating PowerShell web server...
+                        powershell -Command "
+                        try {
+                            Add-Type -AssemblyName System.Net.HttpListener
+                            if ([System.Net.HttpListener]::IsSupported) {
+                                echo 'Starting PowerShell HTTP server on port 8083...'
+                                start powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', '
+                                Add-Type -AssemblyName System.Net.HttpListener;
+                                \\$listener = New-Object System.Net.HttpListener;
+                                \\$listener.Prefixes.Add(\"http://localhost:8083/\");
+                                \\$listener.Start();
+                                echo \"Server running at http://localhost:8083/\";
+                                while (\\$listener.IsListening) {
+                                    \\$context = \\$listener.GetContext();
+                                    \\$response = \\$context.Response;
+                                    \\$content = Get-Content \"index.html\" -Raw;
+                                    \\$buffer = [System.Text.Encoding]::UTF8.GetBytes(\\$content);
+                                    \\$response.ContentLength64 = \\$buffer.Length;
+                                    \\$response.OutputStream.Write(\\$buffer, 0, \\$buffer.Length);
+                                    \\$response.OutputStream.Close();
+                                }'
+                            }
+                        } catch {
+                            echo 'PowerShell server setup failed'
+                        }"
+                    '''
+                    
+                    // Provide access information
+                    echo '''
+                    🌐 APPLICATION ACCESS INFORMATION:
+                    ═══════════════════════════════════════════════════════════════
+                    
+                    📋 LOCAL ACCESS OPTIONS:
+                    • Method 1: Open index.html directly in your browser
+                    • Method 2: http://localhost:8082 (if Python server started)
+                    • Method 3: http://localhost:8083 (if PowerShell server started)
+                    
+                    📁 FILE LOCATION: 
+                    • Jenkins Workspace: C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Calculator@3\\index.html
+                    • Local Development: Open the index.html file directly
+                    
+                    🔧 MANUAL SERVER SETUP:
+                    • Navigate to project directory
+                    • Run: python -m http.server 8082
+                    • Or: python3 -m http.server 8082
+                    • Then visit: http://localhost:8082
+                    
+                    ✅ Application is ready to use!
+                    ═══════════════════════════════════════════════════════════════
+                    '''
                 }
             }
         }
@@ -571,8 +642,15 @@ pipeline {
                     echo ''
                     echo '🎉 SUCCESS: Tax Calculator deployed from GitHub!'
                     echo '📁 Repository: yashwanth407/DevOps-project'
-                    echo '🌐 Application URL: http://localhost:8080/index.html'
+                    echo ''
+                    echo '🌐 APPLICATION ACCESS URLS:'
+                    echo '   • Direct File: Open index.html in browser'
+                    echo '   • Python Server: http://localhost:8082'
+                    echo '   • PowerShell Server: http://localhost:8083'
+                    echo '   • Jenkins Workspace: C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Calculator@3\\index.html'
+                    echo ''
                     echo '📋 Check Jenkins artifacts for detailed reports'
+                    echo '✅ Pipeline completed successfully!'
                 }
             }
         }
