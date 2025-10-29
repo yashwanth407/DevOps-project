@@ -1,6 +1,12 @@
-# Glass Tax Calculator - Jenkins Deployment
+# Glass Tax Calculator - Jenkins Deployment v2.0
 
 A beautiful, modern tax calculator with glassmorphism design that can be deployed and tested using Jenkins.
+
+## 🆕 Latest Update (v2.0)
+- **Removed Python dependency** from Jenkins pipeline
+- **Simplified deployment process** - no more server startup failures
+- **Enhanced user experience** with multiple access methods
+- **Improved error handling** for better reliability
 
 ## 🚀 Quick Start
 
