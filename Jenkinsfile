@@ -545,19 +545,20 @@ pause
         
         stage('Local Preview (PowerShell)') {
             steps {
-                echo 'Starting temporary PowerShell static server (60s) on http://localhost:8083 ...'
+                echo 'Starting temporary PowerShell static server on http://localhost:8083 ...'
                 script {
-                    // Write a minimal PowerShell HttpListener server that self-terminates after 60 seconds
+                    // Write a minimal PowerShell HttpListener server that self-terminates after a time window
                     writeFile file: 'ps_server.ps1', text: '''$ErrorActionPreference = "SilentlyContinue"
 Add-Type -AssemblyName System.Web
-$root = "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Calculator@3"
+$root = $env:WORKSPACE
 $prefix = "http://localhost:8083/"
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add($prefix)
 try { $listener.Start() } catch { exit 0 }
+$limitSeconds = 900  # ~15 minutes
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 try {
-  while ($listener.IsListening -and $sw.Elapsed.TotalSeconds -lt 60) {
+  while ($listener.IsListening -and $sw.Elapsed.TotalSeconds -lt $limitSeconds) {
     if (-not $listener.Pending()) { Start-Sleep -Milliseconds 100; continue }
     $ctx = $listener.GetContext()
     $path = [System.Web.HttpUtility]::UrlDecode($ctx.Request.Url.AbsolutePath.TrimStart('/'))
@@ -579,9 +580,13 @@ try {
 
                     // Launch server in background and verify port availability (non-fatal)
                     bat(returnStatus: true, script: '''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -WindowStyle Hidden powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File ps_server.ps1'"''')
-                    bat(returnStatus: true, script: 'timeout /t 2 >nul')
-                    bat(returnStatus: true, script: 'netstat -an | findstr :8083 && echo ✅ PowerShell server listening on 8083 (60s)')
-                    echo 'Preview URL: http://localhost:8083 (server stops automatically after ~60s)'
+                    bat(returnStatus: true, script: 'powershell -NoProfile -Command "Start-Sleep -Seconds 2"')
+                    bat(returnStatus: true, script: 'netstat -an | findstr :8083 && echo ✅ PowerShell server listening on 8083')
+                    // Print accessible URLs using both localhost (agent) and agent IPs
+                    bat(returnStatus: true, script: 'for /f "tokens=14" %a in ("%date% %time% %computername%") do @echo . >nul')
+                    bat(returnStatus: true, script: 'powershell -NoProfile -Command "$ips=(Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notlike \"169.*\" -and $_.IPAddress -ne \"127.0.0.1\"}).IPAddress; $ips | ForEach-Object { Write-Host \"Preview URL: http://$($_):8083\" }"')
+                    echo 'Preview URL: http://localhost:8083 (on Jenkins agent)'
+                    echo 'Note: Access from another machine using the printed agent IP URLs above.'
                 }
             }
         }
