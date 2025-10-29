@@ -478,9 +478,9 @@ pipeline {
             }
         }
         
-        stage('Application Deployment') {
+        stage('Start Python Server') {
             steps {
-                echo 'Deploying Tax Calculator application...'
+                echo 'Starting Python HTTP server automatically...'
                 script {
                     // Verify the application is ready for deployment
                     echo 'Verifying application deployment readiness...'
@@ -494,8 +494,40 @@ pipeline {
                         findstr /C:"function calculate" index.html >nul && echo   - Calculate function: Found
                         findstr /C:"addEventListener" index.html >nul && echo   - Event handlers: Found
                         echo.
-                        echo ✅ Application is ready for use!
+                        echo ✅ Application is ready for deployment!
                     ''')
+                    
+                    // Start Python server if Python is available
+                    if (env.PYTHON_AVAILABLE == 'true') {
+                        echo "Starting Python HTTP server using: ${env.PYTHON_CMD}"
+                        
+                        // Kill any existing processes on port 8082
+                        bat(returnStatus: true, script: '''
+                            for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8082') do (
+                                taskkill /PID %%a /F >nul 2>&1
+                            )
+                        ''')
+                        
+                        // Start Python server in background
+                        bat(returnStatus: true, script: """
+                            start /B ${env.PYTHON_CMD} -m http.server 8082
+                        """)
+                        
+                        // Wait a moment for server to start
+                        bat(returnStatus: true, script: 'timeout /t 3 /nobreak >nul')
+                        
+                        // Verify server is running
+                        def serverCheck = bat(returnStatus: true, script: 'netstat -ano | findstr :8082')
+                        if (serverCheck == 0) {
+                            echo '✅ Python HTTP server started successfully on port 8082'
+                            echo '🌐 Server URL: http://localhost:8082'
+                        } else {
+                            echo '⚠️ Python server may not have started properly'
+                        }
+                    } else {
+                        echo '⚠️ Python not available - server will not be started automatically'
+                        echo 'ℹ️ You can still open index.html directly in your browser'
+                    }
                     
                     // Create a simple batch file for easy server startup
                     writeFile file: 'run_server.bat', text: '''@echo off
@@ -508,9 +540,17 @@ if %errorlevel% == 0 (
     echo Open http://localhost:8082 in your browser
     python -m http.server 8082
 ) else (
-    echo Python not found. Opening application directly...
-    echo Opening index.html in default browser...
-    start index.html
+    echo Python not found. Trying python3...
+    python3 --version >nul 2>&1
+    if %errorlevel% == 0 (
+        echo Python3 found! Starting HTTP server on port 8082...
+        echo Open http://localhost:8082 in your browser
+        python3 -m http.server 8082
+    ) else (
+        echo Python not found. Opening application directly...
+        echo Opening index.html in default browser...
+        start index.html
+    )
 )
 pause
 '''
@@ -520,9 +560,9 @@ pause
                     ═══════════════════════════════════════════════════════════════
                     
                     📋 ACCESS OPTIONS:
-                    • Method 1: Double-click index.html to open in browser
-                    • Method 2: Run run_server.bat for HTTP server (if Python available)
-                    • Method 3: Manual server: python -m http.server 8082
+                    • Method 1: http://localhost:8082 (Python server - if started)
+                    • Method 2: Double-click index.html to open in browser
+                    • Method 3: Run run_server.bat for manual server startup
                     
                     📁 FILE LOCATIONS: 
                     • Jenkins Workspace: C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Calculator@3\\
@@ -543,15 +583,45 @@ pause
             }
         }
         
+        stage('Free Preview Ports') {
+            steps {
+                echo 'Checking and freeing ports 8082/8083/8090 on Jenkins agent...'
+                script {
+                    bat(returnStatus: true, script: '''powershell -NoProfile -ExecutionPolicy Bypass -Command "
+                        $ports = 8082,8083,8090
+                        $listens = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $ports -contains $_.LocalPort }
+                        if($listens){
+                          Write-Host 'Listeners found:'
+                          $listens | Select-Object LocalAddress,LocalPort,OwningProcess,State | Format-Table -AutoSize | Out-String | Write-Host
+                          $pids = $listens | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -and $_ -ne 4 }
+                          foreach($pid in $pids){
+                            try { Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue; Write-Host \"Killed PID $pid\" } catch {}
+                          }
+                        } else { Write-Host 'No listeners on 8082/8083/8090' }
+                    "''')
+                    // Show current state after cleanup
+                    bat(returnStatus: true, script: 'netstat -ano | findstr :8082')
+                    bat(returnStatus: true, script: 'netstat -ano | findstr :8083')
+                    bat(returnStatus: true, script: 'netstat -ano | findstr :8090')
+                }
+            }
+        }
+
         stage('Local Preview (PowerShell)') {
             steps {
                 echo 'Starting temporary PowerShell static server on http://localhost:8083 ...'
                 script {
+                    // Detect a free port (prefers 8082, 8083, then 8090)
+                    bat(returnStatus: true, script: '''powershell -NoProfile -Command "$ports=@(8082,8083,8090); $used=(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort); $free=($ports | Where-Object { $used -notcontains $_ } | Select-Object -First 1); if(-not $free){ $free=8083 }; Set-Content -Path port.txt -Value $free"''')
+                    def detectedPort = readFile('port.txt').trim()
+                    env.PREVIEW_PORT = detectedPort
+                    echo "Using preview port: ${env.PREVIEW_PORT}"
                     // Write a minimal PowerShell HttpListener server that self-terminates after a time window
                     writeFile file: 'ps_server.ps1', text: '''$ErrorActionPreference = "SilentlyContinue"
 Add-Type -AssemblyName System.Web
 $root = $env:WORKSPACE
-$prefix = "http://localhost:8083/"
+$port = [int]$env:PREVIEW_PORT
+$prefix = "http://+:$port/"
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add($prefix)
 try { $listener.Start() } catch { exit 0 }
@@ -581,11 +651,11 @@ try {
                     // Launch server in background and verify port availability (non-fatal)
                     bat(returnStatus: true, script: '''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -WindowStyle Hidden powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File ps_server.ps1'"''')
                     bat(returnStatus: true, script: 'powershell -NoProfile -Command "Start-Sleep -Seconds 2"')
-                    bat(returnStatus: true, script: 'netstat -an | findstr :8083 && echo ✅ PowerShell server listening on 8083')
+                    bat(returnStatus: true, script: 'netstat -an | findstr :%PREVIEW_PORT% && echo ✅ PowerShell server listening')
                     // Print accessible URLs using both localhost (agent) and agent IPs
                     bat(returnStatus: true, script: 'for /f "tokens=14" %a in ("%date% %time% %computername%") do @echo . >nul')
-                    bat(returnStatus: true, script: 'powershell -NoProfile -Command "$ips=(Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notlike \"169.*\" -and $_.IPAddress -ne \"127.0.0.1\"}).IPAddress; $ips | ForEach-Object { Write-Host \"Preview URL: http://$($_):8083\" }"')
-                    echo 'Preview URL: http://localhost:8083 (on Jenkins agent)'
+                    bat(returnStatus: true, script: 'powershell -NoProfile -Command "$ips=(Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notlike \"169.*\" -and $_.IPAddress -ne \"127.0.0.1\"}).IPAddress; $ips | ForEach-Object { Write-Host (\"Preview URL: http://\" + $_ + \":\" + $env:PREVIEW_PORT) }"')
+                    echo "Preview URL: http://localhost:${env.PREVIEW_PORT} (on Jenkins agent)"
                     echo 'Note: Access from another machine using the printed agent IP URLs above.'
                 }
             }
@@ -656,8 +726,8 @@ try {
                         echo. >> github_output.txt
                         echo DEPLOYMENT DETAILS: >> github_output.txt
                         echo - Jenkins Pipeline: PASSED >> github_output.txt
-                        echo - Web Server: Running on port %PORT% >> github_output.txt
-                        echo - Application URL: http://localhost:%PORT%/index.html >> github_output.txt
+                        echo - Python Web Server: Auto-started on port %PORT% >> github_output.txt
+                        echo - Application URL: http://localhost:%PORT% >> github_output.txt
                         echo - Build Time: %DATE% %TIME% >> github_output.txt
                         echo. >> github_output.txt
                         echo NEXT STEPS: >> github_output.txt
@@ -696,11 +766,11 @@ try {
                     echo '📁 Repository: yashwanth407/DevOps-project'
                     echo ''
                     echo '🌐 JENKINS-HOSTED APPLICATION URLS:'
-                    echo '   🔗 PRIMARY: http://localhost:8083 (Jenkins PowerShell Server)'
-                    echo '   🔗 BACKUP: http://localhost:8082 (Jenkins Python Server)'
+                    echo '   🔗 PRIMARY: http://localhost:8082 (Jenkins Python Server - Auto-started)'
+                    echo '   🔗 BACKUP: http://localhost:8083 (Jenkins PowerShell Server)'
                     echo '   📁 DIRECT: C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Calculator@3\\index.html'
                     echo ''
-                    echo '🎯 MAIN ACCESS LINK: http://localhost:8083'
+                    echo '🎯 MAIN ACCESS LINK: http://localhost:8082'
                     echo ''
                     echo '📋 Check Jenkins artifacts for detailed reports'
                     echo '✅ Pipeline completed successfully!'
@@ -731,9 +801,9 @@ try {
             ✅ Files archived in Jenkins artifacts
             
             🚀 NEXT STEPS:
-            1. Access Jenkins workspace: C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Calculator@3\\
-            2. Open index.html directly in browser, OR
-            3. Run run_server.bat for HTTP server
+            1. Access the application at: http://localhost:8082 (Python server auto-started)
+            2. Alternative: Open index.html directly in browser
+            3. Manual restart: Run run_server.bat if needed
             
             📋 Repository: yashwanth407/DevOps-project
             ═══════════════════════════════════════════════════════════════
