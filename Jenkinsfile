@@ -543,6 +543,49 @@ pause
             }
         }
         
+        stage('Local Preview (PowerShell)') {
+            steps {
+                echo 'Starting temporary PowerShell static server (60s) on http://localhost:8083 ...'
+                script {
+                    // Write a minimal PowerShell HttpListener server that self-terminates after 60 seconds
+                    writeFile file: 'ps_server.ps1', text: '''$ErrorActionPreference = "SilentlyContinue"
+Add-Type -AssemblyName System.Web
+$root = "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Calculator@3"
+$prefix = "http://localhost:8083/"
+$listener = New-Object System.Net.HttpListener
+$listener.Prefixes.Add($prefix)
+try { $listener.Start() } catch { exit 0 }
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+try {
+  while ($listener.IsListening -and $sw.Elapsed.TotalSeconds -lt 60) {
+    if (-not $listener.Pending()) { Start-Sleep -Milliseconds 100; continue }
+    $ctx = $listener.GetContext()
+    $path = [System.Web.HttpUtility]::UrlDecode($ctx.Request.Url.AbsolutePath.TrimStart('/'))
+    if ([string]::IsNullOrWhiteSpace($path)) { $path = "index.html" }
+    $file = Join-Path $root $path
+    if (Test-Path $file) {
+      $bytes = [System.IO.File]::ReadAllBytes($file)
+      switch -Regex ($file) {
+        '\\.html?$' { $ctx.Response.ContentType = "text/html"; break }
+        '\\.css$'  { $ctx.Response.ContentType = "text/css"; break }
+        '\\.js$'   { $ctx.Response.ContentType = "application/javascript"; break }
+        default      { $ctx.Response.ContentType = "application/octet-stream" }
+      }
+      $ctx.Response.OutputStream.Write($bytes,0,$bytes.Length)
+    } else { $ctx.Response.StatusCode = 404 }
+    $ctx.Response.OutputStream.Close()
+  }
+} finally { $listener.Stop() }'''
+
+                    // Launch server in background and verify port availability (non-fatal)
+                    bat(returnStatus: true, script: '''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -WindowStyle Hidden powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File ps_server.ps1'"''')
+                    bat(returnStatus: true, script: 'timeout /t 2 >nul')
+                    bat(returnStatus: true, script: 'netstat -an | findstr :8083 && echo ✅ PowerShell server listening on 8083 (60s)')
+                    echo 'Preview URL: http://localhost:8083 (server stops automatically after ~60s)'
+                }
+            }
+        }
+
         stage('Generate Report') {
             steps {
                 echo 'Generating application report...'
