@@ -6,14 +6,17 @@ pipeline {
         APP_NAME = 'tax-calculator'
         GITHUB_REPO = 'https://github.com/yashwanth407/DevOps-project.git'
         BRANCH = 'main'
+        BUILD_VERSION = '2.0'
     }
     
     stages {
         stage('Checkout from GitHub') {
             steps {
+                echo '🚀 UPDATED JENKINS PIPELINE v2.0 - Python Dependency Removed'
                 echo 'Checking out source code from GitHub...'
                 echo "Repository: ${GITHUB_REPO}"
                 echo "Branch: ${BRANCH}"
+                echo "Build Version: ${BUILD_VERSION}"
                 
                 script {
                     try {
