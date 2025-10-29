@@ -311,49 +311,49 @@ pipeline {
             steps {
                 echo 'Setting up Python environment...'
                 script {
-                    // Check for Python installation with multiple common paths
+                    // Check for Python installation using non-fatal status checks
                     def pythonFound = false
                     def pythonCmd = 'python'
-                    
-                    try {
-                        bat 'python --version'
+
+                    def s1 = bat(returnStatus: true, script: 'python --version')
+                    if (s1 == 0) {
                         pythonFound = true
                         pythonCmd = 'python'
                         echo 'Python found in PATH'
-                    } catch (Exception e1) {
+                    } else {
                         echo 'Python not found in PATH, trying python3...'
-                        try {
-                            bat 'python3 --version'
+                        def s2 = bat(returnStatus: true, script: 'python3 --version')
+                        if (s2 == 0) {
                             pythonFound = true
                             pythonCmd = 'python3'
                             echo 'Python3 found in PATH'
-                        } catch (Exception e2) {
+                        } else {
                             echo 'Python3 not found in PATH, trying common installation paths...'
-                            try {
-                                bat 'C:\\Python39\\python.exe --version'
+                            def s3 = bat(returnStatus: true, script: 'C\\Python39\\python.exe --version')
+                            if (s3 == 0) {
                                 pythonFound = true
-                                pythonCmd = 'C:\\Python39\\python.exe'
-                                echo 'Python found at C:\\Python39\\python.exe'
-                            } catch (Exception e3) {
-                                try {
-                                    bat 'C:\\Python310\\python.exe --version'
+                                pythonCmd = 'C\\Python39\\python.exe'
+                                echo 'Python found at C\\Python39\\python.exe'
+                            } else {
+                                def s4 = bat(returnStatus: true, script: 'C\\Python310\\python.exe --version')
+                                if (s4 == 0) {
                                     pythonFound = true
-                                    pythonCmd = 'C:\\Python310\\python.exe'
-                                    echo 'Python found at C:\\Python310\\python.exe'
-                                } catch (Exception e4) {
-                                    try {
-                                        bat 'C:\\Python311\\python.exe --version'
+                                    pythonCmd = 'C\\Python310\\python.exe'
+                                    echo 'Python found at C\\Python310\\python.exe'
+                                } else {
+                                    def s5 = bat(returnStatus: true, script: 'C\\Python311\\python.exe --version')
+                                    if (s5 == 0) {
                                         pythonFound = true
-                                        pythonCmd = 'C:\\Python311\\python.exe'
-                                        echo 'Python found at C:\\Python311\\python.exe'
-                                    } catch (Exception e5) {
+                                        pythonCmd = 'C\\Python311\\python.exe'
+                                        echo 'Python found at C\\Python311\\python.exe'
+                                    } else {
                                         echo 'Trying where command to find Python...'
-                                        try {
-                                            bat 'where python'
+                                        def s6 = bat(returnStatus: true, script: 'where python')
+                                        if (s6 == 0) {
                                             pythonFound = true
                                             pythonCmd = 'python'
                                             echo 'Python found via where command'
-                                        } catch (Exception e6) {
+                                        } else {
                                             echo 'Python not found in common locations. Will use PowerShell server instead.'
                                             pythonFound = false
                                         }
@@ -373,9 +373,8 @@ pipeline {
                         // Install dependencies if requirements.txt exists
                         if (fileExists('requirements.txt')) {
                             echo 'Installing Python dependencies...'
-                            try {
-                                bat "${pythonCmd} -m pip install -r requirements.txt"
-                            } catch (Exception e) {
+                            def pipStatus = bat(returnStatus: true, script: "${pythonCmd} -m pip install -r requirements.txt")
+                            if (pipStatus != 0) {
                                 echo 'Failed to install dependencies, continuing without them...'
                             }
                         }
@@ -395,10 +394,10 @@ pipeline {
                     } else {
                         echo 'Python not available - will use Node.js http-server as alternative'
                         echo 'Installing Node.js http-server...'
-                        try {
-                            bat 'npm install -g http-server'
+                        def npmInstall = bat(returnStatus: true, script: 'npm install -g http-server')
+                        if (npmInstall == 0) {
                             echo 'http-server installed successfully'
-                        } catch (Exception e) {
+                        } else {
                             echo 'Failed to install http-server, will use PowerShell as fallback'
                         }
                     }
@@ -416,15 +415,15 @@ pipeline {
                     // Verify main files exist and have correct content
                     if (fileExists('index.html')) {
                         echo '✅ Main application file (index.html) found'
-                        bat 'dir index.html'
+                        bat(returnStatus: true, script: 'dir index.html')
                         
                         // Test HTML structure
-                        bat '''
+                        bat(returnStatus: true, script: '''
                             echo Testing HTML structure...
                             findstr /C:"Tax Calculator" index.html && echo ✅ Application title found
                             findstr /C:"function calculate" index.html && echo ✅ Calculate function found
                             findstr /C:"addEventListener" index.html && echo ✅ Event listeners found
-                        '''
+                        ''')
                     }
                     
                     // Check other files
@@ -463,7 +462,7 @@ pipeline {
                     }
                     
                     // Basic file structure tests
-                    bat '''
+                    bat(returnStatus: true, script: '''
                         echo Testing application structure...
                         findstr /C:"<!DOCTYPE html>" index.html && echo ✅ Valid HTML document
                         findstr /C:"<title>" index.html && echo ✅ Title tag found
@@ -472,7 +471,7 @@ pipeline {
                         findstr calculate index.html | findstr id >nul && echo ✅ Calculate button found
                         findstr reset index.html | findstr id >nul && echo ✅ Reset button found
                         echo ✅ Basic structure tests completed
-                    '''
+                    ''')
                     
                     echo '✅ All basic tests passed - application structure is valid'
                 }
@@ -486,7 +485,7 @@ pipeline {
                     // Verify the application is ready for deployment
                     echo 'Verifying application deployment readiness...'
                     
-                    bat '''
+                    bat(returnStatus: true, script: '''
                         echo ✅ Application files verified:
                         dir index.html
                         echo.
@@ -496,7 +495,7 @@ pipeline {
                         findstr /C:"addEventListener" index.html >nul && echo   - Event handlers: Found
                         echo.
                         echo ✅ Application is ready for use!
-                    '''
+                    ''')
                     
                     // Create a simple batch file for easy server startup
                     writeFile file: 'run_server.bat', text: '''@echo off
@@ -548,7 +547,7 @@ pause
             steps {
                 echo 'Generating application report...'
                 script {
-                    bat '''
+                    bat(returnStatus: true, script: '''
                         echo ======================================== > app_report.txt
                         echo TAX CALCULATOR DEPLOYMENT REPORT >> app_report.txt
                         echo FROM GITHUB: yashwanth407/DevOps-project >> app_report.txt
@@ -581,7 +580,7 @@ pause
                         echo Application URL: http://localhost:%PORT%/index.html >> app_report.txt
                         echo. >> app_report.txt
                         echo ======================================== >> app_report.txt
-                    '''
+                    ''')
                 }
             }
         }
@@ -590,7 +589,7 @@ pause
             steps {
                 echo 'Creating GitHub deployment summary...'
                 script {
-                    bat '''
+                    bat(returnStatus: true, script: '''
                         echo ========================================== > github_output.txt
                         echo GITHUB DEVOPS PROJECT - TAX CALCULATOR >> github_output.txt
                         echo ========================================== >> github_output.txt
@@ -620,7 +619,7 @@ pause
                         echo 4. Check responsive behavior on different screens >> github_output.txt
                         echo. >> github_output.txt
                         echo ========================================== >> github_output.txt
-                    '''
+                    ''')
                 }
             }
         }
@@ -633,13 +632,13 @@ pause
                     echo '=========================================='
                     echo 'GITHUB DEVOPS PROJECT OUTPUT'
                     echo '=========================================='
-                    bat 'type github_output.txt'
+                    bat(returnStatus: true, script: 'type github_output.txt')
                     
                     echo ''
                     echo '=========================================='
                     echo 'DETAILED DEPLOYMENT REPORT'
                     echo '=========================================='
-                    bat 'type app_report.txt'
+                    bat(returnStatus: true, script: 'type app_report.txt')
                     
                     // Files will be archived in post-actions section
                     
